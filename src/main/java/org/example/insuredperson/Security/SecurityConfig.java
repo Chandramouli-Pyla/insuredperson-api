@@ -3,6 +3,8 @@ package org.example.insuredperson.Security;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
@@ -15,14 +17,23 @@ public class SecurityConfig {
         this.jwtAuthFilter = jwtAuthFilter;
     }
 
+    //Expose a BCryptPasswordEncoder bean
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/insuredpersons/login").permitAll()   // public login
-                        .requestMatchers("/api/insuredpersons").permitAll()        // public create
-                        .anyRequest().authenticated()                               // all other endpoints require JWT
+                        .requestMatchers("/api/insuredpersons/login",          //login is public
+                                "/api/insuredpersons",                // create new people/register is public
+                                "/api/insuredpersons/forgot-password", // allow password reset request
+                                "/api/insuredpersons/reset-password",   // allow reset password action
+                                "/api/insuredpersons/change-password"
+                        ).permitAll().anyRequest().authenticated()      // all other endpoints require JWT
                 )
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 

@@ -36,7 +36,7 @@ public class ValidationService {
         String regex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$";
         if(email == null || !email.matches(regex)) {
             throw new CustomExceptions.ValidationException(
-                 "Email id format is invalid");
+                    "Email id format is invalid");
         }
     }
 

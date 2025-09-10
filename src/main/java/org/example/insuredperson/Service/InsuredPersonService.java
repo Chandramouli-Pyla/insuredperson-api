@@ -1,27 +1,45 @@
+
 package org.example.insuredperson.Service;
 
-import org.example.insuredperson.DTO.APIResponse;
+import org.example.insuredperson.DTO.ChangePasswordRequest;
 import org.example.insuredperson.DTO.InsuredPersonRequest;
 import org.example.insuredperson.DTO.LoginRequest;
 import org.example.insuredperson.Entity.InsuredPerson;
 import org.example.insuredperson.Exception.CustomExceptions;
 import org.example.insuredperson.Repo.InsuredPersonRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.example.insuredperson.Service.JwtService;
+import org.springframework.beans.factory.annotation.Value;
 
+import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 @Service
 public class    InsuredPersonService {
     private final InsuredPersonRepository repository;
     private final JwtService jwtService;
     private ValidationService validationService;
+    private final PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private JavaMailSender mailSender;
+
+    @Value("${app.mail.from}")
+    private String fromEmail;
+    private final Map<String, PasswordResetToken> tokenStore = new HashMap<>();
 
     //constructor where it will initialize the obj
-    public InsuredPersonService(InsuredPersonRepository repository,  JwtService jwtService, ValidationService validationService) {
+    public InsuredPersonService(InsuredPersonRepository repository,  JwtService jwtService, ValidationService validationService, PasswordEncoder passwordEncoder) {
         this.repository = repository;
         this.jwtService = jwtService;
         this.validationService = validationService;
+        this.passwordEncoder = passwordEncoder;
     }
 
 
@@ -87,37 +105,37 @@ public class    InsuredPersonService {
         entity.setLastName(dto.getLastName());
         entity.setAge(dto.getAge());
         entity.setUserId(dto.getUserId());
-        entity.setPassword(dto.getPassword());
+        entity.setPassword(passwordEncoder.encode(dto.getPassword()));
         entity.setEmail(dto.getEmail());
         entity.setRole(dto.getRole());
         return repository.save(entity);
     }
 
-public InsuredPerson updateInsuredPerson(String pathPolicyNumber, InsuredPersonRequest dto) {
-    //Fetch the record to update using the path parameter
-    InsuredPerson entity = repository.findById(pathPolicyNumber)
-            .orElseThrow(() -> new CustomExceptions.ResourceNotFoundException(
-                    "InsuredPerson not found with policyNumber: " + pathPolicyNumber));
+    public InsuredPerson updateInsuredPerson(String pathPolicyNumber, InsuredPersonRequest dto) {
+        //Fetch the record to update using the path parameter
+        InsuredPerson entity = repository.findById(pathPolicyNumber)
+                .orElseThrow(() -> new CustomExceptions.ResourceNotFoundException(
+                        "InsuredPerson not found with policyNumber: " + pathPolicyNumber));
 
-    //Update fields
-    if (dto.getFirstName() != null) entity.setFirstName(dto.getFirstName());
-    if (dto.getLastName() != null) entity.setLastName(dto.getLastName());
-    if (dto.getAge() != null) entity.setAge(dto.getAge());
-    if(dto.getEmail() != null) entity.setEmail(dto.getEmail());
-    if(dto.getRole() !=null) entity.setRole(dto.getRole());
+        //Update fields
+        if (dto.getFirstName() != null) entity.setFirstName(dto.getFirstName());
+        if (dto.getLastName() != null) entity.setLastName(dto.getLastName());
+        if (dto.getAge() != null) entity.setAge(dto.getAge());
+        if(dto.getEmail() != null) entity.setEmail(dto.getEmail());
+        if(dto.getRole() !=null) entity.setRole(dto.getRole());
 
-    //UserId check
-    if (dto.getUserId() != null) {
-        InsuredPerson existingUser = repository.findByUserId(dto.getUserId());
-        if (existingUser != null && !existingUser.getPolicyNumber().equals(pathPolicyNumber)) {
-            throw new CustomExceptions.DuplicateUserIdException(
-                    "UserId already exists: " + dto.getUserId());
+        //UserId check
+        if (dto.getUserId() != null) {
+            InsuredPerson existingUser = repository.findByUserId(dto.getUserId());
+            if (existingUser != null && !existingUser.getPolicyNumber().equals(pathPolicyNumber)) {
+                throw new CustomExceptions.DuplicateUserIdException(
+                        "UserId already exists: " + dto.getUserId());
+            }
+            entity.setUserId(dto.getUserId());
         }
-        entity.setUserId(dto.getUserId());
+        //Save and return
+        return repository.save(entity);
     }
-    //Save and return
-    return repository.save(entity);
-}
 
 
     //delete record with the help of policyNumber
@@ -138,11 +156,94 @@ public InsuredPerson updateInsuredPerson(String pathPolicyNumber, InsuredPersonR
     public InsuredPerson login(LoginRequest loginRequest) {
         InsuredPerson user = repository.findByUserId(loginRequest.getUserId());
 
-        if (user == null || !user.getPassword().equals(loginRequest.getPassword())) {
+        if (user == null || !passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
             throw new CustomExceptions.UnauthorizedException("Invalid credentials!!! Please try again.");
         }
 
         return user;
     }
 
+        // Step 1: Generate reset token and send email
+        public String forgotPassword(String userId, String email) {
+            InsuredPerson user = repository.findByUserId(userId);
+
+            if (user == null) {
+                throw new CustomExceptions.ResourceNotFoundException("User not found");
+            }
+            if (!user.getEmail().equalsIgnoreCase(email)) {
+                throw new CustomExceptions.ValidationException("Email does not match for this user");
+            }
+            String token = UUID.randomUUID().toString();
+            tokenStore.put(token, new PasswordResetToken(userId, LocalDateTime.now().plusMinutes(15)));
+            // Send email safely
+            try {
+                SimpleMailMessage message = new SimpleMailMessage();
+                message.setFrom(fromEmail);
+                message.setTo(email);
+                message.setSubject("Password Reset Token");
+                message.setText("Hello "+user.getFirstName()+
+                                "."+"\n\nAs you requested for resetting the password, " +
+                                "Here is your reset token: " + token+"\n\n\n\n"+
+                                "Thanks,"+"\n"+
+                                "SpringBoot Operations team.");
+                mailSender.send(message);
+            } catch (Exception e) {
+                // Wrap low-level SMTP error into your own exception
+                throw new CustomExceptions.UnauthorizedException("Failed to send reset email. Please check your email configuration.");
+            }
+
+            return "Reset token sent successfully to email "+ user.getEmail();
+        }
+
+    // Step 2: Reset password with token
+    public InsuredPerson resetPassword(String token, String newPassword) {
+        PasswordResetToken resetToken = tokenStore.get(token);
+
+        if (resetToken == null || resetToken.getExpiry().isBefore(LocalDateTime.now())) {
+            throw new CustomExceptions.UnauthorizedException("Invalid or expired token");
+        }
+
+        // Validate password strength
+        validationService.validatePassword(newPassword);
+
+        InsuredPerson user = repository.findByUserId(resetToken.getUsername());
+        if (user == null) {
+            throw new CustomExceptions.ResourceNotFoundException("User not found");
+        }
+
+        // Encode new password
+        user.setPassword(passwordEncoder.encode(newPassword));
+        repository.save(user);
+
+        // Remove token after use
+        tokenStore.remove(token);
+
+        return user;
+    }
+
+    //updated Password /change password
+    public InsuredPerson updatePassword(ChangePasswordRequest changePasswordRequest) {
+        InsuredPerson user = repository.findByUserId(changePasswordRequest.getUserId());
+        if (user == null || !passwordEncoder.matches(changePasswordRequest.getOldPassword(), user.getPassword())) {
+            throw new CustomExceptions.UnauthorizedException("Invalid credentials!!! Please try again.");
+        }
+        // Validate password strength
+        validationService.validatePassword(changePasswordRequest.getNewPassword());
+        user.setPassword(passwordEncoder.encode(changePasswordRequest.getNewPassword()));
+        repository.save(user);
+
+        return user;
+    }
+    private static class PasswordResetToken {
+        private String userId;
+        private LocalDateTime expiry;
+
+        public PasswordResetToken(String userId, LocalDateTime expiry) {
+            this.userId = userId;
+            this.expiry = expiry;
+        }
+
+        public String getUsername() { return userId; }
+        public LocalDateTime getExpiry() { return expiry; }
+    }
 }

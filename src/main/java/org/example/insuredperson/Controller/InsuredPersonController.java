@@ -1,15 +1,12 @@
 package org.example.insuredperson.Controller;
 
-import org.example.insuredperson.DTO.APIResponse;
-import org.example.insuredperson.DTO.InsuredPersonRequest;
-import org.example.insuredperson.DTO.InsuredPersonResponse;
-import org.example.insuredperson.DTO.LoginRequest;
+import org.example.insuredperson.DTO.*;
 import org.example.insuredperson.Entity.InsuredPerson;
 import org.example.insuredperson.Exception.CustomExceptions;
 import org.example.insuredperson.Service.InsuredPersonService;
+import org.example.insuredperson.Service.JwtService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.example.insuredperson.Service.JwtService;
 
 import java.util.HashMap;
 import java.util.List;
@@ -74,6 +71,7 @@ public class InsuredPersonController {
     @GetMapping({"/{policyNumber}"})
     public ResponseEntity<APIResponse<InsuredPersonResponse>> findById(
                         @PathVariable String policyNumber, @RequestHeader("Authorization") String auth) {
+
         String token = auth.substring(7);
         InsuredPerson entity = insuredPersonService.findById(policyNumber);
         checkUserOrAdminForPolicy(token, entity);
@@ -135,6 +133,7 @@ public class InsuredPersonController {
     public ResponseEntity<APIResponse<InsuredPersonResponse>> updateInsuredPerson(@PathVariable String policyNumber,
             @RequestBody InsuredPersonRequest requestDto,  @RequestHeader("Authorization") String auth) {
         String token = auth.substring(7);
+        System.out.println(token);
         checkAdmin(token);
         requestDto.setPolicyNumber(policyNumber);
         InsuredPerson updatedPerson = insuredPersonService.updateInsuredPerson(policyNumber,requestDto);
@@ -145,15 +144,31 @@ public class InsuredPersonController {
                 response
         ));
     }
+    @PostMapping("/forgot-password")
+    public ResponseEntity<APIResponse<String>> forgotPassword(@RequestBody ForgotPasswordRequest request) {
+        String message = insuredPersonService.forgotPassword(request.getUserId(), request.getEmail());
 
-    @DeleteMapping("/{policyNumber}")
-    public ResponseEntity<APIResponse<Void>> deleteById(@PathVariable String policyNumber,  @RequestHeader("Authorization") String auth) {
-        String token = auth.substring(7);
-        checkAdmin(token);
-        insuredPersonService.deleteInsuredPerson(policyNumber);
-        return ResponseEntity.ok(new APIResponse<>(200, "InsuredPerson deleted successfully", null));
+        return ResponseEntity.ok(
+                new APIResponse<>(200, "Password reset token sent successfully", message)
+        );
     }
 
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<APIResponse<InsuredPersonResponse>> resetPassword(@RequestBody ResetPasswordRequest request) {
+        InsuredPerson updatedUser = insuredPersonService.resetPassword(request.getToken(), request.getNewPassword());
+        InsuredPersonResponse response = mapToResponse(updatedUser);
+        return ResponseEntity.ok(
+                new APIResponse<>(200, "Password reset successful for the follwing User", response)
+        );
+    }
+
+    @PutMapping("/change-password")
+    public ResponseEntity<APIResponse<InsuredPersonResponse>> changePassword(@RequestBody ChangePasswordRequest request){
+        InsuredPerson updateUserPassword = insuredPersonService.updatePassword(request);
+        InsuredPersonResponse response = mapToResponse(updateUserPassword);
+        return ResponseEntity.ok(new APIResponse<>(200, "Password changed successfully for the User", response));
+    }
 
     // Helper method to map entity -> response DTO
     private InsuredPersonResponse mapToResponse(InsuredPerson entity) {

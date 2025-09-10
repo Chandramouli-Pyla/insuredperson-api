@@ -38,7 +38,7 @@ public class CustomExceptions {
         }
     }
 
-    // already existing exceptions here...
+     //already existing exceptions here...
     @ResponseStatus(HttpStatus.UNAUTHORIZED)
     public static class UnauthorizedException extends RuntimeException {
             public UnauthorizedException(String message) {
