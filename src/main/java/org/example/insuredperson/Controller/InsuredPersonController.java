@@ -144,6 +144,14 @@ public class InsuredPersonController {
                 response
         ));
     }
+
+    @DeleteMapping("/{policyNumber}")
+    public ResponseEntity<APIResponse<Void>> deleteById(@PathVariable String policyNumber,  @RequestHeader("Authorization") String auth) {
+        String token = auth.substring(7);
+        checkAdmin(token);
+        insuredPersonService.deleteInsuredPerson(policyNumber);
+        return ResponseEntity.ok(new APIResponse<>(200, "InsuredPerson deleted successfully", null));
+    }
     @PostMapping("/forgot-password")
     public ResponseEntity<APIResponse<String>> forgotPassword(@RequestBody ForgotPasswordRequest request) {
         String message = insuredPersonService.forgotPassword(request.getUserId(), request.getEmail());
