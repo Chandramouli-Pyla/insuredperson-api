@@ -16,10 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Value;
 
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 @Service
 public class    InsuredPersonService {
@@ -33,7 +30,7 @@ public class    InsuredPersonService {
 
     @Value("${app.mail.from}")
     private String fromEmail;
-    private final Map<String, PasswordResetToken> tokenStore = new HashMap<>();
+    private final Map<String, PasswordResetOtp> tokenStore = new HashMap<>();
 
     //constructor where it will initialize the obj
     public InsuredPersonService(InsuredPersonRepository repository,  JwtService jwtService, ValidationService validationService, PasswordEncoder passwordEncoder) {
@@ -170,17 +167,17 @@ public class    InsuredPersonService {
             if (user == null) {
                 throw new CustomExceptions.ResourceNotFoundException("User not found");
             }
-            String token = UUID.randomUUID().toString();
-            tokenStore.put(token, new PasswordResetToken(userId, LocalDateTime.now().plusMinutes(15)));
+            String otp = String.format("%06d", new Random().nextInt(999999));
+            tokenStore.put(otp, new PasswordResetOtp(userId, LocalDateTime.now().plusMinutes(10)));
             // Send email safely
             try {
                 SimpleMailMessage message = new SimpleMailMessage();
                 message.setFrom(fromEmail);
                 message.setTo(user.getEmail());
-                message.setSubject("Password Reset Token");
+                message.setSubject("Password Reset OTP");
                 message.setText("Hello "+user.getFirstName()+
                                 "."+"\n\nAs you requested for resetting the password, " +
-                                "Here is your reset token: " + token+"\n\n\n\n"+
+                                "Here is your reset OPT: " + otp+"\n\n\n\n"+
                                 "Thanks,"+"\n"+
                                 "SpringBoot Operations team.");
                 mailSender.send(message);
@@ -189,16 +186,14 @@ public class    InsuredPersonService {
                 throw new CustomExceptions.UnauthorizedException("Failed to send reset email. Please check your email configuration.");
             }
 
-            return "Reset token sent successfully to email "+ user.getEmail();
+            return "Reset OTP sent successfully to the following email: "+ user.getEmail();
         }
 
     // Step 2: Reset password with token
     public InsuredPerson resetPassword(ResetPasswordRequest resetPasswordRequest) {
-        //String token, String newPassword, String confirmNewPassword
-        PasswordResetToken resetToken = tokenStore.get(resetPasswordRequest.getToken());
-
-        if (resetToken == null || resetToken.getExpiry().isBefore(LocalDateTime.now())) {
-            throw new CustomExceptions.UnauthorizedException("Invalid or expired token");
+        PasswordResetOtp resetOtp = tokenStore.get(resetPasswordRequest.getOtp());
+        if (resetOtp == null || resetOtp.getExpiry().isBefore(LocalDateTime.now())) {
+            throw new CustomExceptions.UnauthorizedException("Invalid or expired OTP");
         }
 
         // Validate password strength
@@ -206,7 +201,7 @@ public class    InsuredPersonService {
         if(!resetPasswordRequest.getNewPassword().equals(resetPasswordRequest.getConfirmNewPassword())) {
             throw new CustomExceptions.UnauthorizedException("Passwords do not match");
         }
-        InsuredPerson user = repository.findByUserId(resetToken.getUsername());
+        InsuredPerson user = repository.findByUserId(resetOtp.getUserId());
         if (user == null) {
             throw new CustomExceptions.ResourceNotFoundException("User not found");
         }
@@ -216,7 +211,7 @@ public class    InsuredPersonService {
         repository.save(user);
 
         // Remove token after use
-        tokenStore.remove(resetPasswordRequest.getToken());
+        tokenStore.remove(resetPasswordRequest.getOtp());
 
         return user;
     }
@@ -237,16 +232,16 @@ public class    InsuredPersonService {
 
         return user;
     }
-    private static class PasswordResetToken {
+    private static class PasswordResetOtp {
         private String userId;
         private LocalDateTime expiry;
 
-        public PasswordResetToken(String userId, LocalDateTime expiry) {
+        public PasswordResetOtp(String userId, LocalDateTime expiry) {
             this.userId = userId;
             this.expiry = expiry;
         }
 
-        public String getUsername() { return userId; }
+        public String getUserId() { return userId; }
         public LocalDateTime getExpiry() { return expiry; }
     }
 }
