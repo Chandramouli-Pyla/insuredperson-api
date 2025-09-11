@@ -4,6 +4,7 @@ public class ChangePasswordRequest {
     private String userId;
     private String oldPassword;
     private String newPassword;
+    private String confirmNewPassword;
     private String email;
 
     public String getUserId() {
@@ -31,6 +32,12 @@ public class ChangePasswordRequest {
     }
     public void setEmail(String email) {
         this.email = email;
+    }
+    public String getConfirmNewPassword() {
+        return confirmNewPassword;
+    }
+    public void setConfirmNewPassword(String confirmNewPassword) {
+        this.confirmNewPassword = confirmNewPassword;
     }
 }
 

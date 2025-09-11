@@ -34,7 +34,10 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                                 || path.equals("/api/insuredpersons")
                                 ||path.equals("/api/insuredpersons/forgot-password")
                                 || path.equals("/api/insuredpersons/reset-password")
-                                || path.equals("/api/insuredpersons/change-password")) {
+                                || path.equals("/api/insuredpersons/change-password")
+                                || path.equals("/v3/api-docs/**")
+                                || path.equals("/swagger-ui/**")
+                                || path.equals("/swagger-ui.html")) {
             filterChain.doFilter(request, response);
             return;
         }

@@ -154,7 +154,7 @@ public class InsuredPersonController {
     }
     @PostMapping("/forgot-password")
     public ResponseEntity<APIResponse<String>> forgotPassword(@RequestBody ForgotPasswordRequest request) {
-        String message = insuredPersonService.forgotPassword(request.getUserId(), request.getEmail());
+        String message = insuredPersonService.forgotPassword(request.getUserId()); //, request.getEmail()
 
         return ResponseEntity.ok(
                 new APIResponse<>(200, "Password reset token sent successfully", message)
@@ -164,7 +164,9 @@ public class InsuredPersonController {
 
     @PostMapping("/reset-password")
     public ResponseEntity<APIResponse<InsuredPersonResponse>> resetPassword(@RequestBody ResetPasswordRequest request) {
-        InsuredPerson updatedUser = insuredPersonService.resetPassword(request.getToken(), request.getNewPassword());
+//        InsuredPerson updatedUser = insuredPersonService.resetPassword(request.getToken(), request.getNewPassword(), request.getConfirmNewPassword());
+        InsuredPerson updatedUser = insuredPersonService.resetPassword(request);
+
         InsuredPersonResponse response = mapToResponse(updatedUser);
         return ResponseEntity.ok(
                 new APIResponse<>(200, "Password reset successful for the follwing User", response)

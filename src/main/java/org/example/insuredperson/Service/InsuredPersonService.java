@@ -4,6 +4,7 @@ package org.example.insuredperson.Service;
 import org.example.insuredperson.DTO.ChangePasswordRequest;
 import org.example.insuredperson.DTO.InsuredPersonRequest;
 import org.example.insuredperson.DTO.LoginRequest;
+import org.example.insuredperson.DTO.ResetPasswordRequest;
 import org.example.insuredperson.Entity.InsuredPerson;
 import org.example.insuredperson.Exception.CustomExceptions;
 import org.example.insuredperson.Repo.InsuredPersonRepository;
@@ -148,7 +149,6 @@ public class    InsuredPersonService {
     }
 
     public String generateTokenForUser(InsuredPerson user) {
-        // generate JWT using userId as subject
         return jwtService.generateToken(user);
     }
 
@@ -164,14 +164,11 @@ public class    InsuredPersonService {
     }
 
         // Step 1: Generate reset token and send email
-        public String forgotPassword(String userId, String email) {
-            InsuredPerson user = repository.findByUserId(userId);
+        public String forgotPassword(String userId) {
+        InsuredPerson user = repository.findByUserId(userId);
 
             if (user == null) {
                 throw new CustomExceptions.ResourceNotFoundException("User not found");
-            }
-            if (!user.getEmail().equalsIgnoreCase(email)) {
-                throw new CustomExceptions.ValidationException("Email does not match for this user");
             }
             String token = UUID.randomUUID().toString();
             tokenStore.put(token, new PasswordResetToken(userId, LocalDateTime.now().plusMinutes(15)));
@@ -179,7 +176,7 @@ public class    InsuredPersonService {
             try {
                 SimpleMailMessage message = new SimpleMailMessage();
                 message.setFrom(fromEmail);
-                message.setTo(email);
+                message.setTo(user.getEmail());
                 message.setSubject("Password Reset Token");
                 message.setText("Hello "+user.getFirstName()+
                                 "."+"\n\nAs you requested for resetting the password, " +
@@ -196,27 +193,30 @@ public class    InsuredPersonService {
         }
 
     // Step 2: Reset password with token
-    public InsuredPerson resetPassword(String token, String newPassword) {
-        PasswordResetToken resetToken = tokenStore.get(token);
+    public InsuredPerson resetPassword(ResetPasswordRequest resetPasswordRequest) {
+        //String token, String newPassword, String confirmNewPassword
+        PasswordResetToken resetToken = tokenStore.get(resetPasswordRequest.getToken());
 
         if (resetToken == null || resetToken.getExpiry().isBefore(LocalDateTime.now())) {
             throw new CustomExceptions.UnauthorizedException("Invalid or expired token");
         }
 
         // Validate password strength
-        validationService.validatePassword(newPassword);
-
+        validationService.validatePassword(resetPasswordRequest.getNewPassword());
+        if(!resetPasswordRequest.getNewPassword().equals(resetPasswordRequest.getConfirmNewPassword())) {
+            throw new CustomExceptions.UnauthorizedException("Passwords do not match");
+        }
         InsuredPerson user = repository.findByUserId(resetToken.getUsername());
         if (user == null) {
             throw new CustomExceptions.ResourceNotFoundException("User not found");
         }
 
         // Encode new password
-        user.setPassword(passwordEncoder.encode(newPassword));
+        user.setPassword(passwordEncoder.encode(resetPasswordRequest.getNewPassword()));
         repository.save(user);
 
         // Remove token after use
-        tokenStore.remove(token);
+        tokenStore.remove(resetPasswordRequest.getToken());
 
         return user;
     }
@@ -225,10 +225,13 @@ public class    InsuredPersonService {
     public InsuredPerson updatePassword(ChangePasswordRequest changePasswordRequest) {
         InsuredPerson user = repository.findByUserId(changePasswordRequest.getUserId());
         if (user == null || !passwordEncoder.matches(changePasswordRequest.getOldPassword(), user.getPassword())) {
-            throw new CustomExceptions.UnauthorizedException("Invalid credentials!!! Please try again.");
+            throw new CustomExceptions.UnauthorizedException("Invalid old password credentials!!! Please try again.");
         }
         // Validate password strength
         validationService.validatePassword(changePasswordRequest.getNewPassword());
+        if(!changePasswordRequest.getNewPassword().equals(changePasswordRequest.getConfirmNewPassword())) {
+            throw new CustomExceptions.UnauthorizedException("Passwords do not match");
+        }
         user.setPassword(passwordEncoder.encode(changePasswordRequest.getNewPassword()));
         repository.save(user);
 
