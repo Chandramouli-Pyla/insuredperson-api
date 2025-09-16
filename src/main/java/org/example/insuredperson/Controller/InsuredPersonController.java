@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+@CrossOrigin(origins = "http://localhost:3000")
 @RestController
 @RequestMapping("api/insuredpersons")
 public class InsuredPersonController {
@@ -115,19 +116,35 @@ public class InsuredPersonController {
     }
 
     @GetMapping("/findByFirstChar")
-    public ResponseEntity<APIResponse<List<InsuredPersonResponse>>> findByInsuredPersonFirstNameStartsWith(@RequestParam String firstChar,
-                                                                                                           @RequestHeader("Authorization") String auth) {
+    public ResponseEntity<APIResponse<List<InsuredPersonResponse>>> findByInsuredPersonFirstNameStartsWith(
+            @RequestParam String firstChar,
+            @RequestHeader("Authorization") String auth) {
+
         String token = auth.substring(7);
         checkAdmin(token);
+
+        if (firstChar == null || firstChar.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(new APIResponse<>(
+                    400,
+                    "First character is required",
+                    List.of()
+            ));
+        }
+
         List<InsuredPerson> persons = insuredPersonService.findByFirstCharOfFirstName(firstChar);
-        List<InsuredPersonResponse> responseList = persons.stream().map(this::mapToResponse).collect(Collectors.toList());
+        List<InsuredPersonResponse> responseList = persons.stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+
         return ResponseEntity.ok(new APIResponse<>(
                 200,
-                persons.isEmpty() ? "No InsuredPerson found with firstName: " + firstChar
-                        : "InsuredPersons retrieved successfully",
+                persons.isEmpty()
+                        ? "No InsuredPerson found with firstName starting with: " + firstChar
+                        : "InsuredPersons retrieved successfully!!!",
                 responseList
         ));
     }
+
 
     @PatchMapping("/{policyNumber}")
     public ResponseEntity<APIResponse<InsuredPersonResponse>> updateInsuredPerson(@PathVariable String policyNumber,
