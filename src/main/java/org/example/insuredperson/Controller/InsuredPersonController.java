@@ -1,5 +1,6 @@
 package org.example.insuredperson.Controller;
 
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.example.insuredperson.DTO.*;
 import org.example.insuredperson.Entity.InsuredPerson;
 import org.example.insuredperson.Exception.CustomExceptions;
@@ -15,6 +16,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @CrossOrigin(origins = "http://localhost:3000")
+@SecurityRequirement(name = "bearerAuth")
 @RestController
 @RequestMapping("api/insuredpersons")
 public class InsuredPersonController {

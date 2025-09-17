@@ -28,16 +28,16 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                                     FilterChain filterChain) throws ServletException, IOException {
 
         String path = request.getRequestURI();
-
+        System.out.println("path: " + path);
         // Skip JWT validation for public endpoints
-        if (path.equals("/api/insuredpersons/login")
-                                || path.equals("/api/insuredpersons")
-                                ||path.equals("/api/insuredpersons/forgot-password")
-                                || path.equals("/api/insuredpersons/reset-password")
-                                || path.equals("/api/insuredpersons/change-password")
-                                || path.equals("/v3/api-docs/**")
-                                || path.equals("/swagger-ui/**")
-                                || path.equals("/swagger-ui.html")) {
+        if (path.startsWith("/swagger-ui")
+                || path.startsWith("/v3/api-docs")
+                || path.equals("/swagger-ui.html")
+                || path.equals("/api/insuredpersons/login")
+                || path.equals("/api/insuredpersons")
+                || path.equals("/api/insuredpersons/forgot-password")
+                || path.equals("/api/insuredpersons/reset-password")
+                || path.equals("/api/insuredpersons/change-password")) {
             filterChain.doFilter(request, response);
             return;
         }

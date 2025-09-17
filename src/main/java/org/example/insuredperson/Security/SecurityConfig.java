@@ -29,7 +29,10 @@ public class SecurityConfig {
                 .cors(cors -> {})  //enable CORS using your CorsConfig
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/insuredpersons/login",          //login is public
+                        .requestMatchers("/swagger-ui/**",
+                                "/v3/api-docs/**",
+                                "/swagger-ui.html",
+                                "/api/insuredpersons/login",          //login is public
                                 "/api/insuredpersons",                // create new people/register is public
                                 "/api/insuredpersons/forgot-password", // allow password reset request
                                 "/api/insuredpersons/reset-password",   // allow reset password action
