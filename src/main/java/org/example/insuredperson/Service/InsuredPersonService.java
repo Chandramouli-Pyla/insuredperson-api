@@ -9,6 +9,8 @@ import org.example.insuredperson.Entity.InsuredPerson;
 import org.example.insuredperson.Exception.CustomExceptions;
 import org.example.insuredperson.Repo.InsuredPersonRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -42,9 +44,11 @@ public class    InsuredPersonService {
 
 
     //getting all isnured persons data from the data base
-    public List<InsuredPerson> getAllInsuredList() {
-        return repository.findAll();
+    public Page<InsuredPerson> getAllInsuredList(int offSet, int pageSize) {
+        return repository.findAll(PageRequest.of(offSet, pageSize));
     }
+
+
 
     //getting insured person single data (record) using person id
     public InsuredPerson findById(String policyNumber){
@@ -152,7 +156,6 @@ public class    InsuredPersonService {
     //Login credentials service
     public InsuredPerson login(LoginRequest loginRequest) {
         InsuredPerson user = repository.findByUserId(loginRequest.getUserId());
-
         if (user == null || !passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
             throw new CustomExceptions.UnauthorizedException("Invalid credentials!!! Please try again.");
         }

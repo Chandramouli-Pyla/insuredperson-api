@@ -5,6 +5,7 @@ import org.example.insuredperson.Entity.InsuredPerson;
 import org.example.insuredperson.Exception.CustomExceptions;
 import org.example.insuredperson.Service.InsuredPersonService;
 import org.example.insuredperson.Service.JwtService;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -53,20 +54,32 @@ public class InsuredPersonController {
         );
     }
     @GetMapping
-    public ResponseEntity<APIResponse<List<InsuredPersonResponse>>> findAll(
-                @RequestHeader("Authorization") String auth) {
+    public ResponseEntity<Map<String, Object>> findAll(
+            @RequestHeader("Authorization") String auth,
+            @RequestParam(defaultValue = "0") int offSet,
+            @RequestParam(defaultValue = "3") int pageSize) {
+
         String token = auth.substring(7);
         checkAdmin(token);
-        List<InsuredPerson> allEntries = insuredPersonService.getAllInsuredList();
+
+        Page<InsuredPerson> allEntries = insuredPersonService.getAllInsuredList(offSet, pageSize);
         List<InsuredPersonResponse> responseList = allEntries.stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
-        return ResponseEntity.ok(new APIResponse<>(
-                200,
-                "All InsuredPersons retrieved successfully",
-                responseList
-        ));
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("status", 200);
+        response.put("message", "All InsuredPersons retrieved successfully");
+        response.put("data", responseList);
+        response.put("hasNext", allEntries.hasNext());
+        response.put("hasPrevious", allEntries.hasPrevious());
+        response.put("totalPages", allEntries.getTotalPages());
+        response.put("totalElements", allEntries.getTotalElements());
+        response.put("currentPage", allEntries.getNumber());
+
+        return ResponseEntity.ok(response);
     }
+
 
 
     @GetMapping({"/{policyNumber}"})

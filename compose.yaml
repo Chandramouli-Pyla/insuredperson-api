@@ -1,32 +1,33 @@
 services:
-  mysql:
-    image: 'mysql:latest'
+  db:
+    image: mysql:8.0
+    container_name: insuredperson-db
     environment:
-      - 'MYSQL_DATABASE=mydatabase'
-      - 'MYSQL_PASSWORD=secret'
-      - 'MYSQL_ROOT_PASSWORD=verysecret'
-      - 'MYSQL_USER=myuser'
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: insured_db
     ports:
-      - '3306'
-  oracle:
-    image: 'gvenzl/oracle-free:latest'
-    environment:
-      - 'ORACLE_PASSWORD=secret'
+      - "3307:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: insuredperson-app
+    env_file:
+      - ./.env
     ports:
-      - '1521'
-  postgres:
-    image: 'postgres:latest'
-    environment:
-      - 'POSTGRES_DB=mydatabase'
-      - 'POSTGRES_PASSWORD=secret'
-      - 'POSTGRES_USER=myuser'
-    ports:
-      - '5432'
-  sqlserver:
-    image: 'mcr.microsoft.com/mssql/server:latest'
-    environment:
-      - 'ACCEPT_EULA=yes'
-      - 'MSSQL_PID=express'
-      - 'MSSQL_SA_PASSWORD=verYs3cret'
-    ports:
-      - '1433'
+      - "8081:8081"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: on-failure
+
+volumes:
+  db_data:
