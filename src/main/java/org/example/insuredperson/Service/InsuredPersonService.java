@@ -110,6 +110,28 @@ public class    InsuredPersonService {
         entity.setPassword(passwordEncoder.encode(dto.getPassword()));
         entity.setEmail(dto.getEmail());
         entity.setRole(dto.getRole());
+
+        try {
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setFrom(fromEmail);
+            message.setTo(entity.getEmail());
+            message.setSubject("Insurance Portal Credentials Created Successfully");
+
+            message.setText("Hello " + entity.getFirstName() + ",\n\n" +
+                    "Thank you for registering with our Insurance company.\n\n" +
+                    "Here are your login credentials:\n" +
+                    "Username: " + entity.getUserId() + "\n" +
+                    "To reset your password or set a new one, please visit the following link:\n" +
+                    "http://localhost:3000/forgot-password\n\n" +
+                    "Thanks,\n" +
+                    "SpringBoot Operations Team");
+
+            mailSender.send(message);
+        } catch (Exception e) {
+            // Wrap low-level SMTP error into your own exception
+            throw new CustomExceptions.UnauthorizedException("Failed to send reset email. Please check your email configuration.");
+        }
+
         return repository.save(entity);
     }
 
