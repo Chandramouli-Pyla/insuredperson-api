@@ -33,4 +33,3 @@ build/
 .vscode/
 
 #ignoring environment variabless (like sensitive data)
-.env
