@@ -202,7 +202,7 @@ public class    InsuredPersonService {
                 message.setSubject("Password Reset OTP");
                 message.setText("Hello "+user.getFirstName()+
                                 "."+"\n\nAs you requested for resetting the password, " +
-                                "Here is your reset OPT: " + otp+"\n\n\n\n"+
+                                "Here is your reset OTP: " + otp+"\n\n\n\n"+
                                 "Thanks,"+"\n"+
                                 "SpringBoot Operations team.");
                 mailSender.send(message);
