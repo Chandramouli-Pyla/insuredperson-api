@@ -22,7 +22,7 @@ WORKDIR /app
 COPY --from=builder /workspace/target/*.jar app.jar
 
 # Expose port (Cloud Run injects $PORT, defaults to 8080)
-EXPOSE 8080
+EXPOSE 8081
 
 # Run the JAR
 ENTRYPOINT ["java","-jar","/app/app.jar"]
