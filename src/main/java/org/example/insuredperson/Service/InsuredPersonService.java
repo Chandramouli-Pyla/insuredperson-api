@@ -122,7 +122,7 @@ public class    InsuredPersonService {
                     "Here are your login credentials:\n" +
                     "Username: " + entity.getUserId() + "\n" +
                     "To reset your password or set a new one, please visit the following link:\n" +
-                    "http://localhost:3000/forgot-password\n\n" +
+                    "https://insuredperson-api-ui-458668609912.us-central1.run.app/forgot-password\n\n" +
                     "Thanks,\n" +
                     "SpringBoot Operations Team");
 
