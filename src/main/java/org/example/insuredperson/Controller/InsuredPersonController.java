@@ -15,7 +15,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-@CrossOrigin(origins = "http://localhost:3000")
+//@CrossOrigin(origins = "http://localhost:3000")
+@CrossOrigin(origins = "https://insuredperson-api-ui-458668609912.us-central1.run.app")
 @SecurityRequirement(name = "bearerAuth")
 @RestController
 @RequestMapping("api/insuredpersons")
