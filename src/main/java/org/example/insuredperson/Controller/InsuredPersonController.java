@@ -83,24 +83,16 @@ public class InsuredPersonController {
 
     @GetMapping("/policySearch")
     public ResponseEntity<APIResponse<List<InsuredPersonResponse>>> searchPolicies(
-            @RequestParam(required = false) String policyNumber,
-            @RequestParam(required = false) String firstName,
-            @RequestParam(required = false) String lastName,
-            @RequestParam(required = false) String firstChar,
-            @RequestParam(required = false) String email,
-            @RequestParam(required = false) String phoneNumber,
-            @RequestParam(required = false) String userId,
+            @RequestParam String query,
             @RequestHeader("Authorization") String auth) {
 
         String token = auth.substring(7);
 
         List<InsuredPerson> persons = new ArrayList<>();
 
-        // Case 1: Search by Policy Number
-        if (policyNumber != null && !policyNumber.trim().isEmpty()) {
-            InsuredPerson entity = insuredPersonService.findById(policyNumber);
-
-            // User can only access their own policy, Admin can access anyone
+        // Case 1: Try as Policy Number first → User can access own, Admin can access anyone
+        try {
+            InsuredPerson entity = insuredPersonService.findById(query);
             checkUserOrAdminForPolicy(token, entity);
 
             return ResponseEntity.ok(
@@ -110,43 +102,108 @@ public class InsuredPersonController {
                             List.of(mapToResponse(entity))
                     )
             );
+        } catch (CustomExceptions.ResourceNotFoundException e) {
+            // Not a policy number → continue to search by other fields (Admin only)
         }
 
-        // Case 2: Other filters → Only Admin allowed
+        // Only Admin can search by other fields
         checkAdmin(token);
 
-        if (firstName != null && !firstName.trim().isEmpty()) {
-            persons = insuredPersonService.findByFirstName(firstName);
-        } else if (lastName != null && !lastName.trim().isEmpty()) {
-            persons = insuredPersonService.findByLastName(lastName);
-        } else if (firstChar != null && !firstChar.trim().isEmpty()) {
-            persons = insuredPersonService.findByFirstCharOfFirstName(firstChar);
-        } else if (email != null && !email.trim().isEmpty()) {
-            persons = insuredPersonService.findByEmail(email);
-        }
-        else if (phoneNumber != null && !phoneNumber.trim().isEmpty()) {
-            persons = insuredPersonService.findByPhoneNumber(phoneNumber);
-        }
-        else if (userId != null && !userId.trim().isEmpty()) {
-            persons = Collections.singletonList((InsuredPerson) insuredPersonService.findByUserId(userId));
-        } else {
-            return ResponseEntity.badRequest().body(
-                    new APIResponse<>(400, "At least one search parameter is required", List.of())
+        try {
+            // Try each field one by one; first match wins
+            try { persons = insuredPersonService.findByFirstName(query); } catch (CustomExceptions.ResourceNotFoundException ignored) {}
+            if (persons.isEmpty()) try { persons = insuredPersonService.findByLastName(query); } catch (CustomExceptions.ResourceNotFoundException ignored) {}
+            if (persons.isEmpty()) try { persons = insuredPersonService.findByFirstCharOfFirstName(query); } catch (CustomExceptions.ResourceNotFoundException ignored) {}
+            if (persons.isEmpty()) try { persons = insuredPersonService.findByEmail(query); } catch (CustomExceptions.ResourceNotFoundException ignored) {}
+            if (persons.isEmpty()) try { persons = insuredPersonService.findByPhoneNumber(query); } catch (CustomExceptions.ResourceNotFoundException ignored) {}
+            if (persons.isEmpty()) try { persons = Collections.singletonList(insuredPersonService.findByUserId(query)); } catch (CustomExceptions.ResourceNotFoundException ignored) {}
+
+            if (persons.isEmpty()) {
+                throw new CustomExceptions.ResourceNotFoundException("No InsuredPerson found with query: " + query);
+            }
+
+            List<InsuredPersonResponse> responseList = persons.stream()
+                    .map(this::mapToResponse)
+                    .collect(Collectors.toList());
+
+            return ResponseEntity.ok(
+                    new APIResponse<>(
+                            200,
+                            "Records retrieved successfully",
+                            responseList
+                    )
             );
+        } catch (CustomExceptions.ResourceNotFoundException e) {
+            throw e; // propagate original exception
         }
-
-        List<InsuredPersonResponse> responseList = persons.stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
-
-        return ResponseEntity.ok(
-                new APIResponse<>(
-                        200,
-                        persons.isEmpty() ? "No records found" : "Records retrieved successfully",
-                        responseList
-                )
-        );
     }
+
+//    @GetMapping("/policySearch")
+//    public ResponseEntity<APIResponse<List<InsuredPersonResponse>>> searchPolicies(
+//            @RequestParam(required = false) String policyNumber,
+//            @RequestParam(required = false) String firstName,
+//            @RequestParam(required = false) String lastName,
+//            @RequestParam(required = false) String firstChar,
+//            @RequestParam(required = false) String email,
+//            @RequestParam(required = false) String phoneNumber,
+//            @RequestParam(required = false) String userId,
+//            @RequestHeader("Authorization") String auth) {
+//
+//        String token = auth.substring(7);
+//
+//        List<InsuredPerson> persons = new ArrayList<>();
+//
+//        // Case 1: Search by Policy Number
+//        if (policyNumber != null && !policyNumber.trim().isEmpty()) {
+//            InsuredPerson entity = insuredPersonService.findById(policyNumber);
+//
+//            // User can only access their own policy, Admin can access anyone
+//            checkUserOrAdminForPolicy(token, entity);
+//
+//            return ResponseEntity.ok(
+//                    new APIResponse<>(
+//                            200,
+//                            "Policy retrieved successfully",
+//                            List.of(mapToResponse(entity))
+//                    )
+//            );
+//        }
+//
+//        // Case 2: Other filters → Only Admin allowed
+//        checkAdmin(token);
+//
+//        if (firstName != null && !firstName.trim().isEmpty()) {
+//            persons = insuredPersonService.findByFirstName(firstName);
+//        } else if (lastName != null && !lastName.trim().isEmpty()) {
+//            persons = insuredPersonService.findByLastName(lastName);
+//        } else if (firstChar != null && !firstChar.trim().isEmpty()) {
+//            persons = insuredPersonService.findByFirstCharOfFirstName(firstChar);
+//        } else if (email != null && !email.trim().isEmpty()) {
+//            persons = insuredPersonService.findByEmail(email);
+//        }
+//        else if (phoneNumber != null && !phoneNumber.trim().isEmpty()) {
+//            persons = insuredPersonService.findByPhoneNumber(phoneNumber);
+//        }
+//        else if (userId != null && !userId.trim().isEmpty()) {
+//            persons = Collections.singletonList((InsuredPerson) insuredPersonService.findByUserId(userId));
+//        } else {
+//            return ResponseEntity.badRequest().body(
+//                    new APIResponse<>(400, "At least one search parameter is required", List.of())
+//            );
+//        }
+//
+//        List<InsuredPersonResponse> responseList = persons.stream()
+//                .map(this::mapToResponse)
+//                .collect(Collectors.toList());
+//
+//        return ResponseEntity.ok(
+//                new APIResponse<>(
+//                        200,
+//                        persons.isEmpty() ? "No records found" : "Records retrieved successfully",
+//                        responseList
+//                )
+//        );
+//    }
 
     @GetMapping({"/{policyNumber}"})
     public ResponseEntity<APIResponse<InsuredPersonResponse>> findById(
