@@ -1,5 +1,6 @@
 package org.example.insuredperson.Repo;
 
+import io.swagger.models.auth.In;
 import jakarta.transaction.Transactional;
 import org.example.insuredperson.Entity.InsuredPerson;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -14,7 +15,8 @@ public interface InsuredPersonRepository extends JpaRepository<InsuredPerson, St
     List<InsuredPerson> findByFirstName(String firstName);
     List<InsuredPerson> findByLastName(String lastName);
     List<InsuredPerson> findByFirstNameStartsWith(String firstChar);
-
+    List<InsuredPerson> findByEmail(String email);
+    List<InsuredPerson> findByPhoneNumber(String phoneNumber);
     boolean existsByUserId(String userId);
     InsuredPerson findByUserId(String userId);
 

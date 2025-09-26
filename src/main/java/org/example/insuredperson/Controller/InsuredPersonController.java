@@ -10,9 +10,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 //@CrossOrigin(origins = "http://localhost:3000")
@@ -83,7 +81,72 @@ public class InsuredPersonController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/policySearch")
+    public ResponseEntity<APIResponse<List<InsuredPersonResponse>>> searchPolicies(
+            @RequestParam(required = false) String policyNumber,
+            @RequestParam(required = false) String firstName,
+            @RequestParam(required = false) String lastName,
+            @RequestParam(required = false) String firstChar,
+            @RequestParam(required = false) String email,
+            @RequestParam(required = false) String phoneNumber,
+            @RequestParam(required = false) String userId,
+            @RequestHeader("Authorization") String auth) {
 
+        String token = auth.substring(7);
+
+        List<InsuredPerson> persons = new ArrayList<>();
+
+        // Case 1: Search by Policy Number
+        if (policyNumber != null && !policyNumber.trim().isEmpty()) {
+            InsuredPerson entity = insuredPersonService.findById(policyNumber);
+
+            // User can only access their own policy, Admin can access anyone
+            checkUserOrAdminForPolicy(token, entity);
+
+            return ResponseEntity.ok(
+                    new APIResponse<>(
+                            200,
+                            "Policy retrieved successfully",
+                            List.of(mapToResponse(entity))
+                    )
+            );
+        }
+
+        // Case 2: Other filters → Only Admin allowed
+        checkAdmin(token);
+
+        if (firstName != null && !firstName.trim().isEmpty()) {
+            persons = insuredPersonService.findByFirstName(firstName);
+        } else if (lastName != null && !lastName.trim().isEmpty()) {
+            persons = insuredPersonService.findByLastName(lastName);
+        } else if (firstChar != null && !firstChar.trim().isEmpty()) {
+            persons = insuredPersonService.findByFirstCharOfFirstName(firstChar);
+        } else if (email != null && !email.trim().isEmpty()) {
+            persons = insuredPersonService.findByEmail(email);
+        }
+        else if (phoneNumber != null && !phoneNumber.trim().isEmpty()) {
+            persons = insuredPersonService.findByPhoneNumber(phoneNumber);
+        }
+        else if (userId != null && !userId.trim().isEmpty()) {
+            persons = Collections.singletonList((InsuredPerson) insuredPersonService.findByUserId(userId));
+        } else {
+            return ResponseEntity.badRequest().body(
+                    new APIResponse<>(400, "At least one search parameter is required", List.of())
+            );
+        }
+
+        List<InsuredPersonResponse> responseList = persons.stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(
+                new APIResponse<>(
+                        200,
+                        persons.isEmpty() ? "No records found" : "Records retrieved successfully",
+                        responseList
+                )
+        );
+    }
 
     @GetMapping({"/{policyNumber}"})
     public ResponseEntity<APIResponse<InsuredPersonResponse>> findById(
@@ -223,6 +286,15 @@ public class InsuredPersonController {
         response.setUserId(entity.getUserId());
         response.setEmail(entity.getEmail());
         response.setRole(entity.getRole());
+        response.setPhoneNumber(entity.getPhoneNumber());
+        response.setStreet(entity.getStreet());
+        response.setApartment(entity.getApartment());
+        response.setCity(entity.getCity());
+        response.setState(entity.getState());
+        response.setCountry(entity.getCountry());
+        response.setZipcode(entity.getZipcode());
+        response.setTypeOfInsurance(entity.getTypeOfInsurance());
+
         return response;
     }
 

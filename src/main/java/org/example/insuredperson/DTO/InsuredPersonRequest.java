@@ -1,5 +1,7 @@
 package org.example.insuredperson.DTO;
 
+import org.example.insuredperson.Entity.InsuranceType;
+
 public class InsuredPersonRequest {
     private String policyNumber;
     private String firstName;
@@ -9,6 +11,16 @@ public class InsuredPersonRequest {
     private String password;
     private String email;
     private String role;
+    private String phoneNumber;
+    private String street;
+    private String apartment;
+    private String city;
+    private String zipcode;
+
+    private String state;
+    private String country;
+
+    private InsuranceType typeOfInsurance;
 
     public String getPolicyNumber() {
         return policyNumber;
@@ -71,5 +83,69 @@ public class InsuredPersonRequest {
     }
     public void setRole(String role) {
         this.role = role;
+    }
+
+    public InsuranceType getTypeOfInsurance() {
+        return typeOfInsurance;
+    }
+
+    public void setTypeOfInsurance(InsuranceType typeOfInsurance) {
+        this.typeOfInsurance = typeOfInsurance;
+    }
+
+    public String getPhoneNumber() {
+        return phoneNumber;
+    }
+
+    public void setPhoneNumber(String phoneNumber) {
+        this.phoneNumber = phoneNumber;
+    }
+
+    public String getStreet() {
+        return street;
+    }
+
+    public void setStreet(String street) {
+        this.street = street;
+    }
+
+    public String getApartment() {
+        return apartment;
+    }
+
+    public void setApartment(String apartment) {
+        this.apartment = apartment;
+    }
+
+    public String getCity() {
+        return city;
+    }
+
+    public void setCity(String city) {
+        this.city = city;
+    }
+
+    public String getZipcode() {
+        return zipcode;
+    }
+
+    public void setZipcode(String zipcode) {
+        this.zipcode = zipcode;
+    }
+
+    public String getState() {
+        return state;
+    }
+
+    public void setState(String state) {
+        this.state = state;
+    }
+
+    public String getCountry() {
+        return country;
+    }
+
+    public void setCountry(String country) {
+        this.country = country;
     }
 }
