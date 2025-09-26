@@ -139,7 +139,7 @@ public class    InsuredPersonService {
         entity.setPassword(passwordEncoder.encode(dto.getPassword()));
         entity.setEmail(dto.getEmail());
         entity.setRole(dto.getRole());
-        entity.setPolicyNumber(dto.getPhoneNumber());
+        entity.setPhoneNumber(dto.getPhoneNumber());
         entity.setStreet(dto.getStreet());
         entity.setApartment(dto.getApartment());
         entity.setCity(dto.getCity());
