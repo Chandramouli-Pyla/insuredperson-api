@@ -171,57 +171,8 @@ public class    InsuredPersonService {
         return repository.save(entity);
     }
 
-//    //creating new record and inserting into the dto
-//    public InsuredPerson createInsuredPerson(InsuredPersonRequest dto) {
-//        if(repository.existsById(dto.getPolicyNumber())) {
-//            throw new CustomExceptions.DuplicatePolicyException("Policy number already exists: " + dto.getPolicyNumber());
-//        }
-//        if(repository.existsByUserId( dto.getUserId())) {
-//            throw new CustomExceptions.DuplicateUserIdException("User id already exists: " + dto.getUserId());
-//
-//        }
-//
-//        validationService.validateUserId(dto.getUserId());
-//        validationService.validatePassword(dto.getPassword());
-//        validationService.validatePolicyNumber(dto.getPolicyNumber());
-//        validationService.validateEmail(dto.getEmail());
-//
-//        InsuredPerson entity = new InsuredPerson();
-//        entity.setPolicyNumber(dto.getPolicyNumber());
-//        entity.setFirstName(dto.getFirstName());
-//        entity.setLastName(dto.getLastName());
-//        entity.setAge(dto.getAge());
-//        entity.setUserId(dto.getUserId());
-//        entity.setPassword(passwordEncoder.encode(dto.getPassword()));
-//        entity.setEmail(dto.getEmail());
-//        entity.setRole(dto.getRole());
-//
-//        try {
-//            SimpleMailMessage message = new SimpleMailMessage();
-//            message.setFrom(fromEmail);
-//            message.setTo(entity.getEmail());
-//            message.setSubject("Insurance Portal Credentials Created Successfully");
-//
-//            message.setText("Hello " + entity.getFirstName() + ",\n\n" +
-//                    "Thank you for registering with our Insurance company.\n\n" +
-//                    "Here are your login credentials:\n" +
-//                    "Username: " + entity.getUserId() + "\n" +
-//                    "To reset your password or set a new one, please visit the following link:\n" +
-//                    "https://insuredperson-api-ui-458668609912.us-central1.run.app/forgot-password\n\n" +
-//                    "Thanks,\n" +
-//                    "SpringBoot Operations Team");
-//
-//            mailSender.send(message);
-//        } catch (Exception e) {
-//            // Wrap low-level SMTP error into your own exception
-//            throw new CustomExceptions.UnauthorizedException("Failed to send reset email. Please check your email configuration.");
-//        }
-//
-//        return repository.save(entity);
-//    }
-
     public InsuredPerson updateInsuredPerson(String pathPolicyNumber, InsuredPersonRequest dto) {
-        //Fetch the record to update using the path parameter
+        //Fetch the record to update using the path parameter ie., policyNumber
         InsuredPerson entity = repository.findById(pathPolicyNumber)
                 .orElseThrow(() -> new CustomExceptions.ResourceNotFoundException(
                         "InsuredPerson not found with policyNumber: " + pathPolicyNumber));
