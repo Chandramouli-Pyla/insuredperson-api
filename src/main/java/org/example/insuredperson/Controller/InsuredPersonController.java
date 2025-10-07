@@ -4,11 +4,14 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.example.insuredperson.DTO.*;
 import org.example.insuredperson.Entity.InsuredPerson;
 import org.example.insuredperson.Exception.CustomExceptions;
+import org.example.insuredperson.Repo.InsuredPersonRepository;
 import org.example.insuredperson.Service.InsuredPersonService;
 import org.example.insuredperson.Service.JwtService;
 import org.springframework.data.domain.Page;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -22,10 +25,12 @@ public class InsuredPersonController {
 
     public final InsuredPersonService insuredPersonService;
     public final JwtService jwtService;
+    public final InsuredPersonRepository repository;
 
-    public InsuredPersonController(InsuredPersonService insuredPersonService, JwtService jwtService) {
+    public InsuredPersonController(InsuredPersonService insuredPersonService, JwtService jwtService, InsuredPersonRepository repository) {
         this.insuredPersonService = insuredPersonService;
         this.jwtService = jwtService;
+        this.repository = repository;
     }
 
     // Create new InsuredPerson
@@ -40,6 +45,35 @@ public class InsuredPersonController {
                 .body(new APIResponse<>(201, "InsuredPerson created successfully", response));
     }
 
+    @PutMapping(value = "/profile-picture/{policyNumber}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<APIResponse<String>> uploadProfilePicture(
+            @PathVariable String policyNumber,
+            @RequestPart("profilePicture") MultipartFile profilePicture) {
+
+        try {
+            insuredPersonService.saveProfilePicture(policyNumber, profilePicture);
+            return ResponseEntity.ok(new APIResponse<>(200, "Profile picture uploaded successfully", null));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(404).body(new APIResponse<>(404, e.getMessage(), null));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(new APIResponse<>(500, "Failed to upload profile picture: " + e.getMessage(), null));
+        }
+    }
+
+    @GetMapping("/profile-picture/{policyNumber}")
+    public ResponseEntity<byte[]> getProfilePicture(@PathVariable String policyNumber) {
+        InsuredPerson person = repository.findById(policyNumber)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        byte[] image = person.getProfilePicture();
+        if (image == null || image.length == 0) {
+            return ResponseEntity.notFound().build();
+        }
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.IMAGE_JPEG)
+                .body(image);
+    }
 
     @PostMapping("/login")
     public ResponseEntity<APIResponse<Map<String, Object>>> login(@RequestBody LoginRequest loginRequest) {

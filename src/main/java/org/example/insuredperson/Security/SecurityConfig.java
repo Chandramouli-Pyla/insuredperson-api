@@ -33,6 +33,7 @@ public class SecurityConfig {
                                 "/v3/api-docs/**",
                                 "/swagger-ui.html",
                                 "/api/insuredpersons/login",          //login is public
+                                "/api/insuredpersons/profile-picture/**",
                                 "/api/insuredpersons",                // create new people/register is public
                                 "/api/insuredpersons/forgot-password", // allow password reset request
                                 "/api/insuredpersons/reset-password",   // allow reset password action

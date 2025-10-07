@@ -16,7 +16,9 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -169,6 +171,14 @@ public class    InsuredPersonService {
             throw new CustomExceptions.UnauthorizedException("Failed to send reset email. Please check your email configuration.");
         }
         return repository.save(entity);
+    }
+
+    public void saveProfilePicture(String policyNumber, MultipartFile profilePicture) throws IOException {
+        InsuredPerson insuredPerson = repository.findById(policyNumber)
+                .orElseThrow(() -> new RuntimeException("Policy number not found"));
+
+        insuredPerson.setProfilePicture(profilePicture.getBytes());
+        repository.save(insuredPerson);
     }
 
     public InsuredPerson updateInsuredPerson(String pathPolicyNumber, InsuredPersonRequest dto) {

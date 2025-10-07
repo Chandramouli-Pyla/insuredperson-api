@@ -41,6 +41,19 @@ public class InsuredPerson {
     @Enumerated(EnumType.STRING) // Stores enum name in DB
     private InsuranceType typeOfInsurance;
 
+    @Lob
+    @Basic(fetch = FetchType.LAZY)
+    @Column(columnDefinition = "LONGBLOB")
+    private byte[] profilePicture;  // Stores the image as a byte array
+
+    public byte[] getProfilePicture() {
+        return profilePicture;
+    }
+
+    public void setProfilePicture(byte[] profilePicture) {
+        this.profilePicture = profilePicture;
+    }
+
     public String getPhoneNumber() {
         return phoneNumber;
     }
