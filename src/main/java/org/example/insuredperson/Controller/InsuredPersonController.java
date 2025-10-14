@@ -1,18 +1,24 @@
 package org.example.insuredperson.Controller;
 
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import jakarta.validation.Valid;
 import org.example.insuredperson.DTO.*;
+import org.example.insuredperson.Entity.Document;
 import org.example.insuredperson.Entity.InsuredPerson;
 import org.example.insuredperson.Exception.CustomExceptions;
+import org.example.insuredperson.Repo.DocumentRepository;
 import org.example.insuredperson.Repo.InsuredPersonRepository;
 import org.example.insuredperson.Service.InsuredPersonService;
 import org.example.insuredperson.Service.JwtService;
 import org.springframework.data.domain.Page;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.lang.annotation.Documented;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -26,19 +32,36 @@ public class InsuredPersonController {
     public final InsuredPersonService insuredPersonService;
     public final JwtService jwtService;
     public final InsuredPersonRepository repository;
+    private final DocumentRepository documentRepository;
 
-    public InsuredPersonController(InsuredPersonService insuredPersonService, JwtService jwtService, InsuredPersonRepository repository) {
+    public InsuredPersonController(InsuredPersonService insuredPersonService, JwtService jwtService, InsuredPersonRepository repository, DocumentRepository documentRepository) {
         this.insuredPersonService = insuredPersonService;
         this.jwtService = jwtService;
         this.repository = repository;
+        this.documentRepository = documentRepository;
     }
 
     // Create new InsuredPerson
-    @PostMapping
-    public ResponseEntity<APIResponse<InsuredPersonResponse>> createInsuredPerson(
-            @RequestBody InsuredPersonRequest requestDto) {
+//    @PostMapping
+//    public ResponseEntity<APIResponse<InsuredPersonResponse>> createInsuredPerson(
+//            @RequestBody InsuredPersonRequest requestDto) {
+//
+//        InsuredPerson savedEntity = insuredPersonService.createInsuredPerson(requestDto);
+//        InsuredPersonResponse response = mapToResponse(savedEntity);
+//
+//        return ResponseEntity.status(201)
+//                .body(new APIResponse<>(201, "InsuredPerson created successfully", response));
+//    }
 
+    @Operation(summary = "Create InsuredPerson with documents")
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<APIResponse<InsuredPersonResponse>> createInsuredPerson(
+            @RequestPart("info") @Valid InsuredPersonRequest requestDto,
+            @RequestPart(name = "documents", required = false) MultipartFile[] documents) {
+
+        requestDto.setDocuments(documents);
         InsuredPerson savedEntity = insuredPersonService.createInsuredPerson(requestDto);
+
         InsuredPersonResponse response = mapToResponse(savedEntity);
 
         return ResponseEntity.status(201)
@@ -73,6 +96,47 @@ public class InsuredPersonController {
         return ResponseEntity.ok()
                 .contentType(MediaType.IMAGE_JPEG)
                 .body(image);
+    }
+
+    @GetMapping("/documents/{policyNumber}")
+    public ResponseEntity<List<DocumentDTO>> getDocumentsByPolicyNumber(@PathVariable String policyNumber) {
+        List<Document> documents = documentRepository.findByInsuredPersonPolicyNumber(policyNumber);
+        System.out.println(documents);
+        if (documents.isEmpty()) {
+            return ResponseEntity.noContent().build();
+        }
+
+        List<DocumentDTO> dtos = documents.stream()
+                .map(doc -> new DocumentDTO(
+                        doc.getFileName(),
+                        doc.getFileType(),
+                        doc.getData() != null ? doc.getData().length : 0,
+                        doc.getInsuredPerson().getPolicyNumber(),
+                        doc.getInsuredPerson().getFirstName(),
+                        doc.getInsuredPerson().getLastName()
+                ))
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(dtos);
+    }
+
+    @GetMapping("/documents/download/{policyNumber}/{fileName:.+}")
+    public ResponseEntity<byte[]> downloadDocument(
+            @PathVariable String policyNumber,
+            @PathVariable String fileName) {
+
+        Optional<Document> optionalDoc = documentRepository.findByInsuredPersonPolicyNumberAndFileName(policyNumber, fileName);
+
+        if (optionalDoc.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        Document doc = optionalDoc.get();
+        byte[] fileData = doc.getData();
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + doc.getFileName() + "\"")
+                .header(HttpHeaders.CONTENT_TYPE, doc.getFileType()) // e.g., application/pdf
+                .body(fileData);
     }
 
     @PostMapping("/login")

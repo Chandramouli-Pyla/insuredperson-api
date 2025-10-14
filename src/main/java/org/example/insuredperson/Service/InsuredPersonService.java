@@ -5,6 +5,7 @@ import org.example.insuredperson.DTO.ChangePasswordRequest;
 import org.example.insuredperson.DTO.InsuredPersonRequest;
 import org.example.insuredperson.DTO.LoginRequest;
 import org.example.insuredperson.DTO.ResetPasswordRequest;
+import org.example.insuredperson.Entity.Document;
 import org.example.insuredperson.Entity.InsuredPerson;
 import org.example.insuredperson.Exception.CustomExceptions;
 import org.example.insuredperson.Repo.InsuredPersonRepository;
@@ -118,6 +119,62 @@ public class    InsuredPersonService {
     }
 
     //creating new record and inserting into the dto
+//    public InsuredPerson createInsuredPerson(InsuredPersonRequest dto) {
+//        if(repository.existsById(dto.getPolicyNumber())) {
+//            throw new CustomExceptions.DuplicatePolicyException("Policy number already exists: " + dto.getPolicyNumber());
+//        }
+//        if(repository.existsByUserId( dto.getUserId())) {
+//            throw new CustomExceptions.DuplicateUserIdException("User id already exists: " + dto.getUserId());
+//
+//        }
+//
+//        validationService.validateUserId(dto.getUserId());
+//        validationService.validatePassword(dto.getPassword());
+//        validationService.validatePolicyNumber(dto.getPolicyNumber());
+//        validationService.validateEmail(dto.getEmail());
+//
+//        InsuredPerson entity = new InsuredPerson();
+//        entity.setPolicyNumber(dto.getPolicyNumber());
+//        entity.setFirstName(dto.getFirstName());
+//        entity.setLastName(dto.getLastName());
+//        entity.setAge(dto.getAge());
+//        entity.setUserId(dto.getUserId());
+//        entity.setPassword(passwordEncoder.encode(dto.getPassword()));
+//        entity.setEmail(dto.getEmail());
+//        entity.setRole(dto.getRole());
+//        entity.setPhoneNumber(dto.getPhoneNumber());
+//        entity.setStreet(dto.getStreet());
+//        entity.setApartment(dto.getApartment());
+//        entity.setCity(dto.getCity());
+//        entity.setState(dto.getState());
+//        entity.setCountry(dto.getCountry());
+//        entity.setZipcode(dto.getZipcode());
+//        entity.setTypeOfInsurance(dto.getTypeOfInsurance());
+//
+//        try {
+//            SimpleMailMessage message = new SimpleMailMessage();
+//            message.setFrom(fromEmail);
+//            message.setTo(entity.getEmail());
+//            message.setSubject("Insurance Portal Credentials Created Successfully");
+//
+//            message.setText("Hello " + entity.getFirstName() + ",\n\n" +
+//                    "Thank you for registering with our Insurance company.\n\n" +
+//                    "Here are your login credentials:\n" +
+//                    "Username: " + entity.getUserId() + "\n" +
+//                    "To reset your password or set a new one, please visit the following link:\n" +
+//                    "https://insuredperson-api-ui-458668609912.us-central1.run.app/forgot-password\n\n" +
+//                    "Thanks,\n" +
+//                    "SpringBoot Operations Team");
+//
+//            mailSender.send(message);
+//        } catch (Exception e) {
+//            // Wrap low-level SMTP error into your own exception
+//            throw new CustomExceptions.UnauthorizedException("Failed to send reset email. Please check your email configuration.");
+//        }
+//        return repository.save(entity);
+//    }
+
+    //creating new record and inserting into the dto
     public InsuredPerson createInsuredPerson(InsuredPersonRequest dto) {
         if(repository.existsById(dto.getPolicyNumber())) {
             throw new CustomExceptions.DuplicatePolicyException("Policy number already exists: " + dto.getPolicyNumber());
@@ -150,6 +207,32 @@ public class    InsuredPersonService {
         entity.setZipcode(dto.getZipcode());
         entity.setTypeOfInsurance(dto.getTypeOfInsurance());
 
+
+        // Process documents (if any)
+        MultipartFile[] files = dto.getDocuments();
+        if (files != null) {
+            if (files.length > 5) {
+                throw new IllegalArgumentException("You can upload a maximum of 5 documents.");
+            }
+
+            for (MultipartFile file : files) {
+                if (!file.isEmpty()) {
+                    Document doc = new Document();
+                    doc.setFileName(file.getOriginalFilename());
+                    doc.setFileType(file.getContentType());
+                    try {
+                        doc.setData(file.getBytes());
+                    } catch (IOException e) {
+                        throw new RuntimeException("Failed to read document", e);
+                    }
+
+                    // Associate document with the insured person
+                    entity.addDocument(doc);
+                }
+            }
+        }
+
+
         try {
             SimpleMailMessage message = new SimpleMailMessage();
             message.setFrom(fromEmail);
@@ -161,7 +244,7 @@ public class    InsuredPersonService {
                     "Here are your login credentials:\n" +
                     "Username: " + entity.getUserId() + "\n" +
                     "To reset your password or set a new one, please visit the following link:\n" +
-                    "https://insuredperson-api-ui-458668609912.us-central1.run.app/forgot-password\n\n" +
+                    "http://localhost:3000/forgot-password\n\n" +
                     "Thanks,\n" +
                     "SpringBoot Operations Team");
 

@@ -3,6 +3,9 @@ package org.example.insuredperson.Entity;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Pattern;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Entity
 public class InsuredPerson {
 
@@ -45,6 +48,15 @@ public class InsuredPerson {
     @Basic(fetch = FetchType.LAZY)
     @Column(columnDefinition = "LONGBLOB")
     private byte[] profilePicture;  // Stores the image as a byte array
+
+    @OneToMany(mappedBy = "insuredPerson", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Document> documents = new ArrayList<>();
+
+    // Method to add a document
+    public void addDocument(Document document) {
+        documents.add(document);
+        document.setInsuredPerson(this);
+    }
 
     public byte[] getProfilePicture() {
         return profilePicture;

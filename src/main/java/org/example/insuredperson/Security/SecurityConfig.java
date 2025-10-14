@@ -37,7 +37,8 @@ public class SecurityConfig {
                                 "/api/insuredpersons",                // create new people/register is public
                                 "/api/insuredpersons/forgot-password", // allow password reset request
                                 "/api/insuredpersons/reset-password",   // allow reset password action
-                                "/api/insuredpersons/change-password"
+                                "/api/insuredpersons/change-password",
+                                "/api/insuredpersons/documents/**"
                         ).permitAll().anyRequest().authenticated()      // all other endpoints require JWT
                 )
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);

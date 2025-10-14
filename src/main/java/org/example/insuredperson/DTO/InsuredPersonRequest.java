@@ -1,6 +1,7 @@
 package org.example.insuredperson.DTO;
 
 import org.example.insuredperson.Entity.InsuranceType;
+import org.springframework.web.multipart.MultipartFile;
 
 public class InsuredPersonRequest {
     private String policyNumber;
@@ -21,6 +22,8 @@ public class InsuredPersonRequest {
     private String country;
 
     private InsuranceType typeOfInsurance;
+
+    private MultipartFile[] documents;
 
     public String getPolicyNumber() {
         return policyNumber;
@@ -147,5 +150,13 @@ public class InsuredPersonRequest {
 
     public void setCountry(String country) {
         this.country = country;
+    }
+
+    public MultipartFile[] getDocuments() {
+        return documents;
+    }
+
+    public void setDocuments(MultipartFile[] documents) {
+        this.documents = documents;
     }
 }
