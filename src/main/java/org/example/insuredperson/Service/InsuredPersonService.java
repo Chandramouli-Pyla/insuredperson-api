@@ -8,6 +8,7 @@ import org.example.insuredperson.DTO.ResetPasswordRequest;
 import org.example.insuredperson.Entity.Document;
 import org.example.insuredperson.Entity.InsuredPerson;
 import org.example.insuredperson.Exception.CustomExceptions;
+import org.example.insuredperson.Repo.DocumentRepository;
 import org.example.insuredperson.Repo.InsuredPersonRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -29,6 +30,7 @@ public class    InsuredPersonService {
     private final JwtService jwtService;
     private ValidationService validationService;
     private final PasswordEncoder passwordEncoder;
+    private final DocumentRepository documentRepository;
 
     @Autowired
     private JavaMailSender mailSender;
@@ -38,8 +40,9 @@ public class    InsuredPersonService {
     private final Map<String, PasswordResetOtp> tokenStore = new HashMap<>();
 
     //constructor where it will initialize the obj
-    public InsuredPersonService(InsuredPersonRepository repository,  JwtService jwtService, ValidationService validationService, PasswordEncoder passwordEncoder) {
+    public InsuredPersonService(InsuredPersonRepository repository, DocumentRepository documentRepository, JwtService jwtService, ValidationService validationService, PasswordEncoder passwordEncoder) {
         this.repository = repository;
+        this.documentRepository = documentRepository;
         this.jwtService = jwtService;
         this.validationService = validationService;
         this.passwordEncoder = passwordEncoder;

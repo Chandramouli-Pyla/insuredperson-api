@@ -6,7 +6,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class ValidationService {
 
-    void validateUserId(String userId) {
+    public void validateUserId(String userId) {
         // At least 8 chars, one upper, one lower, one digit, one special char
         String regex = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@!$*_])[A-Za-z\\d@!$*_]{8,}$";
         if (userId == null || !userId.matches(regex)) {
@@ -16,7 +16,7 @@ public class ValidationService {
         }
     }
 
-    void validatePassword(String password) {
+    public void validatePassword(String password) {
         String regex = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@!$*_])[A-Za-z\\d@!$*_]{8,}$";
         if (password == null || !password.matches(regex)) {
             throw new CustomExceptions.ValidationException(
@@ -25,14 +25,14 @@ public class ValidationService {
         }
     }
 
-    void validatePolicyNumber(String policyNumber) {
+    public void validatePolicyNumber(String policyNumber) {
         if (policyNumber == null || !policyNumber.startsWith("PA")) {
             throw new CustomExceptions.ValidationException(
                     "Policy Number must start with 'PA'");
         }
     }
 
-    void validateEmail(String email) {
+    public void validateEmail(String email) {
         String regex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$";
         if(email == null || !email.matches(regex)) {
             throw new CustomExceptions.ValidationException(
