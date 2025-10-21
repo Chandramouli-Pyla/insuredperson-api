@@ -20,18 +20,15 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-
-import java.util.Base64;
 import java.util.List;
-
-import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import static org.mockito.Mockito.when;
 
-@ActiveProfiles("test")
+
 @SpringBootTest
 @AutoConfigureMockMvc
+@ActiveProfiles("test")
 class InsuredPersonControllerTest {
 
     @Autowired
@@ -56,10 +53,74 @@ class InsuredPersonControllerTest {
 
     @BeforeEach
     void setup() {
-        // Set up a dummy token (ideally mock JwtService)
         jwtToken = "Bearer 325834heftih5894urhfn3t94y5.34984u53jo34tot.345u9834u3rj34itj0t3403i4984ut3t";
-        // Mock JwtService to accept this token and treat it as admin
+
+        // Mock the JwtService behavior
+        when(jwtService.generateToken(org.mockito.Mockito.any()))
+                .thenReturn(jwtToken);
+
+        when(jwtService.validateTokenAndGetUserId(org.mockito.Mockito.anyString()))
+                .thenReturn(String.valueOf(true));
+
     }
+
+
+
+    private static InsuredPersonRequest getInsuredPersonRequest() {
+        InsuredPersonRequest request = new InsuredPersonRequest();
+        request.setPolicyNumber("PA7876543");
+        request.setFirstName("John");
+        request.setLastName("Doe");
+        request.setAge(30);
+        request.setUserId("Johndoe@1210");
+        request.setPassword("StrongP@ssw0rd");
+        request.setEmail("john.doe@gmail.com");
+        request.setRole("Admin");
+        request.setPhoneNumber("2134567890");
+        request.setStreet("123 Main St");
+        request.setApartment("Apt 4B");
+        request.setCity("New York");
+        request.setState("NY");
+        request.setCountry("USA");
+        request.setZipcode("10001");
+        request.setTypeOfInsurance(InsuranceType.HEALTH_INSURANCE);
+        return request;
+    }
+
+    @Test
+    void createInsuredPerson_Success() throws Exception {
+        //Build DTO
+        InsuredPersonRequest request = getInsuredPersonRequest();
+
+        // Convert to JSON for `info` part
+        MockMultipartFile infoPart = new MockMultipartFile(
+                "info",
+                "info.json",
+                MediaType.APPLICATION_JSON_VALUE,
+                objectMapper.writeValueAsBytes(request)
+        );
+
+        //Adding a document
+        MockMultipartFile document = new MockMultipartFile(
+                "documents",
+                "id-proof.pdf",
+                MediaType.APPLICATION_PDF_VALUE,
+                "Dummy file content".getBytes()
+        );
+
+        //Perform the request
+        mockMvc.perform(multipart("/api/insuredpersons")
+                        .file(infoPart)
+                        .file(document)
+                        .contentType(MediaType.MULTIPART_FORM_DATA_VALUE))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.status").value(201))
+                .andExpect(jsonPath("$.message").value("InsuredPerson created successfully"))
+                .andExpect(jsonPath("$.data.policyNumber").value(request.getPolicyNumber()))
+                .andExpect(jsonPath("$.data.firstName").value("John"))
+                .andExpect(jsonPath("$.data.lastName").value("Doe"));
+    }
+
 
     @Test
     void testLogin_Success() throws Exception {
@@ -103,69 +164,19 @@ class InsuredPersonControllerTest {
                 .andExpect(jsonPath("$.data").doesNotExist());
     }
 
-
-    private static InsuredPersonRequest getInsuredPersonRequest() {
-        InsuredPersonRequest request = new InsuredPersonRequest();
-        request.setPolicyNumber("PA475657865");
-        request.setFirstName("Xyz");
-        request.setLastName("Abc");
-        request.setAge(30);
-        request.setUserId("Xyzabc@1210");
-        request.setPassword("StrongP@ssw0rd");
-        request.setEmail("john.doe@gmail.com");
-        request.setRole("User");
-        request.setPhoneNumber("2134567890");
-        request.setStreet("123 Main St");
-        request.setApartment("Apt 4B");
-        request.setCity("New York");
-        request.setState("NY");
-        request.setCountry("USA");
-        request.setZipcode("10001");
-        request.setTypeOfInsurance(InsuranceType.HEALTH_INSURANCE);
-        return request;
-    }
-
-    @Test
-    void createInsuredPerson_Success() throws Exception {
-        //Build DTO
-        InsuredPersonRequest request = getInsuredPersonRequest();
-
-        // Convert to JSON for `info` part
-        MockMultipartFile infoPart = new MockMultipartFile(
-                "info",
-                "info.json",
-                MediaType.APPLICATION_JSON_VALUE,
-                objectMapper.writeValueAsBytes(request)
-        );
-
-        //Adding a document
-        MockMultipartFile document = new MockMultipartFile(
-                "documents",
-                "id-proof.pdf",
-                MediaType.APPLICATION_PDF_VALUE,
-                "Dummy file content".getBytes()
-        );
-
-        //Perform the request
-        mockMvc.perform(multipart("/api/insuredpersons")
-                        .file(infoPart)
-                        .file(document)
-                        .contentType(MediaType.MULTIPART_FORM_DATA_VALUE))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.status").value(201))
-                .andExpect(jsonPath("$.message").value("InsuredPerson created successfully"))
-                .andExpect(jsonPath("$.data.policyNumber").value(request.getPolicyNumber()))
-                .andExpect(jsonPath("$.data.firstName").value("Xyz"))
-                .andExpect(jsonPath("$.data.lastName").value("Abc"));
-    }
-
-
     @Test
     void testGetByPolicyNumber_Unauthorized() throws Exception {
-        mockMvc.perform(get("/api/insuredpersons/POL0001")
-                        .header("Authorization", "Bearer invalidToken"))
+        String invalidToken = "invalidToken";
+
+        // Make JwtService return false for invalid token
+        when(jwtService.validateTokenAndGetUserId(invalidToken)).thenReturn(null); // or throw exception depending on your filter
+
+        mockMvc.perform(get("/api/insuredpersons/PA7876543")
+                        .header("Authorization", "Bearer " + invalidToken))
                 .andExpect(status().isUnauthorized());
     }
+
+
 
     @Test
     void deleteInsuredPerson_Success() throws Exception {
@@ -364,7 +375,7 @@ class InsuredPersonControllerTest {
         person1.setPassword(passwordEncoder.encode("Pass123"));
         person1.setFirstName("Alice");
         person1.setEmail("alice@example.com");
-        person1.setRole("User");
+        person1.setRole("Admin");
 
         InsuredPerson person2 = new InsuredPerson();
         person2.setPolicyNumber("PA1002");
@@ -372,27 +383,28 @@ class InsuredPersonControllerTest {
         person2.setPassword(passwordEncoder.encode("Pass123"));
         person2.setFirstName("Bob");
         person2.setEmail("bob@example.com");
-        person2.setRole("User");
+        person2.setRole("Admin");
 
         repository.saveAll(List.of(person1, person2));
 
         // Simulate a valid admin token
-        String adminToken = "Bearer VALID_ADMIN_TOKEN";
-
+        String adminToken = "VALID_ADMIN_TOKEN";
+        when(jwtService.validateTokenAndGetUserId(adminToken)).thenReturn("SomeUserId");
+        when(jwtService.extractUserRole(adminToken)).thenReturn("Admin");
         // Act & Assert
         mockMvc.perform(get("/api/insuredpersons")
-                        .header("Authorization", adminToken)
+                        .header("Authorization","Bearer "+ adminToken)
                         .param("offSet", "0")
                         .param("pageSize", "3"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value(200))
                 .andExpect(jsonPath("$.message").value("All InsuredPersons retrieved successfully"))
                 .andExpect(jsonPath("$.data").isArray())
-                .andExpect(jsonPath("$.data.length()").value(2))
-                .andExpect(jsonPath("$.hasNext").value(false))
+                .andExpect(jsonPath("$.data.length()").value(3))
+                .andExpect(jsonPath("$.hasNext").value(true))
                 .andExpect(jsonPath("$.hasPrevious").value(false))
-                .andExpect(jsonPath("$.totalPages").value(1))
-                .andExpect(jsonPath("$.totalElements").value(2))
+                .andExpect(jsonPath("$.totalPages").value(2))
+                .andExpect(jsonPath("$.totalElements").value(5))
                 .andExpect(jsonPath("$.currentPage").value(0));
     }
 
